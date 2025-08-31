@@ -1,0 +1,15 @@
+{
+  "domain": "fronius_ohmpilot",
+  "name": "Fronius Ohmpilot",
+  "version": "1.0.0",
+  "codeowners": [
+    "@x-ian"
+  ],
+  "config_flow": true,
+  "single_config_entry": true,
+  "dependencies": ["modbus"],
+  "documentation": "https://github.com/x-ian/ha-fronius-ohmpilot",
+  "iot_class": "local_polling",
+  "quality_scale": "bronze",
+  "requirements": []
+}
