@@ -28,11 +28,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Fronius Ohmpilot from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    _LOGGER.warning("async_setup_entry %s ", entry.data[CONF_HOST])
-    _LOGGER.warning("async_setup_entry %s ", entry.data)
     host = entry.data[CONF_HOST]
-    modbus_port = 503  # entry.data['modbus_port']
-    http_port = 81  # entry.data['http_port']
+    modbus_port = 503  # TODO entry.data['modbus_port']
+    http_port = 81  # TODO entry.data['http_port']
 
     api_client = FroniusOhmpilotApiClient(hass, host, modbus_port, http_port)
     coordinator = FroniusOhmpilotDataUpdateCoordinator(hass, api_client)
@@ -47,35 +45,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
 
-    # Register the service to set time
-    # async def set_time_service(call: ServiceCall):
-    #     """Service call to set the Ohmpilot time."""
-    #     await api_client.async_set_time()
+    # set time on ohmpilot every 30 mins
+    async def update_time(now):
+        await api_client.async_set_time()
 
-    # setting the time on ohmpilot
-    # hass.services.async_register(DOMAIN, "sync_time", set_time_service)
+    unsub = async_track_time_interval(
+        hass,
+        update_time,
+        timedelta(minutes=30),
+    )
+    entry.async_on_unload(unsub)
 
-    # Define the function to be called by the timer
-    # async def sync_time_interval(now=None):
-    #     _LOGGER.warning("Executing periodic Ohmpilot time sync.")
-    #     await api_client.async_set_time()
-    # # Automatically sync time every hour, like in the AppDaemon script
-    # # async_track_time_interval(hass, lambda now: api_client.async_set_time(), timedelta(hours=1))
-    # # async_track_time_interval(hass, lambda now: api_client.async_set_time(), timedelta(minutes=1))
-    # # Set up the interval to run every minute and capture the remover function
-    # remover = async_track_time_interval(hass, sync_time_interval, timedelta(minutes=60))
-    # # Register a listener to call the remover function when the integration is unloaded
-    # entry.async_on_unload(remover)
+    # set power limit on ohmpilot every 10 secs
+    async def update_power(now):
+        # TODO: Make this configurable
+        # TODO: Replace with your actual entity ID
+        power_limit_entity_id = "number.fronius_ohmpilot_integration_maximum_power"
+        if (state := hass.states.get(power_limit_entity_id)) is None or state.state in (
+            "unavailable",
+            "unknown",
+        ):
+            return
 
-    # # Every 10 secs set the Power (as otherwise the Ohmpilot goes into failure mode)
-    # # Define the function to be called by the timer
-    # async def sync_power_interval(now=None):
-    #     _LOGGER.warning("Executing periodic Ohmpilot power sync.")
-    #     await api_client.async_set_power_limit(500)
-    # # async_track_time_interval(hass, lambda now: api_client.async_set_power_limit(500), timedelta(seconds=3))
-    # remover_power = async_track_time_interval(hass, sync_power_interval, timedelta(seconds=1))
-    # # Register a listener to call the remover function when the integration is unloaded
-    # entry.async_on_unload(remover_power)
+        try:
+            power_limit = int(float(state.state))
+        except ValueError:
+            _LOGGER.warning(
+                "Could not parse power limit from %s", power_limit_entity_id
+            )
+            return
+        if power_limit > 1:
+            await api_client.async_set_power_limit(power_limit)
+
+    unsub2 = async_track_time_interval(
+        hass,
+        update_power,
+        timedelta(seconds=1),
+    )
+    entry.async_on_unload(unsub2)
 
     return True
 
@@ -101,3 +108,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)
+
+
+# async def async_setup_time_sync(hass: HomeAssistant, entry: BalboaConfigEntry) -> None:
+#     """Set up the time sync."""
+
+#     _LOGGER.debug("Setting up 30-mins time sync")
+#     api_client = entry.runtime_data
+#     await api_client.async_set_time()
+
+#     async def sync_time(now: datetime) -> None:
+#         now = dt_util.as_local(now)
+#         if (now.hour, now.minute) != (spa.time_hour, spa.time_minute):
+#             _LOGGER.debug("Syncing time with Home Assistant")
+#             await spa.set_time(now.hour, now.minute)
+
+#     await sync_time(dt_util.utcnow())
+#     entry.async_on_unload(
+#         async_track_time_interval(hass, sync_time, SYNC_TIME_INTERVAL)
+#     )

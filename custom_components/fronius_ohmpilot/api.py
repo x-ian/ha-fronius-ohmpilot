@@ -1,6 +1,7 @@
 """Fronius Ohmpilot API Client."""
 
 import asyncio
+from datetime import datetime
 import logging
 import time
 from typing import Any, Dict
@@ -115,7 +116,7 @@ class FroniusOhmpilotApiClient:
 
     async def async_set_power_limit(self, power: int) -> None:
         """Set the power limit via Modbus."""
-        # _LOGGER.warning("Set power limit to %s W", power)
+        _LOGGER.warning("Set power limit to %s W", power)
         payload = [0, power]
         await self.hass.async_add_executor_job(
             self._execute_modbus_sync, self.client.write_registers, 40599, payload
@@ -140,18 +141,38 @@ class FroniusOhmpilotApiClient:
 
     async def async_set_time(self) -> None:
         """Set the system time on the Ohmpilot via Modbus."""
-        # _LOGGER.warning("Ohmpilot system time synchronized.")
+        _LOGGER.warning("Ohmpilot system time synchronized.")
+
+        def get_local_utc_offset_minutes_robust() -> int:
+            """Calculates the current system's local time offset from UTC in a robust way.
+
+            This method is generally more reliable across different platforms and
+            configurations than using the `time` module.
+
+            Returns:
+                int: The time zone offset in minutes.
+            """
+            # Create a timezone-aware datetime object for the current local time
+            local_aware_time = datetime.now().astimezone()
+
+            # Get the UTC offset from this aware object. This returns a timedelta.
+            utc_offset = local_aware_time.utcoffset()
+
+            # Calculate the total offset in minutes and return as an integer
+            return int(utc_offset.total_seconds() / 60)
+
         now = int(time.time())
         high_word = (now >> 16) & 0xFFFF
         low_word = now & 0xFFFF
         # Assuming timezone +2h = 120 minutes (standard for Germany in summer)
+        mins_offset = get_local_utc_offset_minutes_robust()
         now_struct = time.localtime()
         if now_struct.tm_isdst > 0 and time.daylight:
             timezone_offset_minutes = -time.altzone // 60
         else:
             timezone_offset_minutes = -time.timezone // 60
 
-        # TODO: Make timezone configurable or dynamic
+        # TODO: Make timezone configurable or dynamic, above mins_offset doesn't seem to work reliably
         payload = [0, 0, high_word, low_word, 120]
 
         await self.hass.async_add_executor_job(
