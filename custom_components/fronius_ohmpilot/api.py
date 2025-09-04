@@ -39,7 +39,7 @@ class FroniusOhmpilotApiClient:
             if result.isError():
                 _LOGGER.error("Modbus error: %s", result)
                 return None
-            _LOGGER.warning("_execute_modbus_sync. No Modbus error: %s", result)
+            # _LOGGER.warning("_execute_modbus_sync. No Modbus error: %s", result)
             return result
         except ConnectionException as e:
             _LOGGER.error(
@@ -54,7 +54,7 @@ class FroniusOhmpilotApiClient:
             return None
 
         finally:
-            _LOGGER.warning("_execute_modbus_sync finally")
+            # _LOGGER.warning("_execute_modbus_sync finally")
             self.client.close()
 
     async def test_connection(self) -> bool:
@@ -63,7 +63,7 @@ class FroniusOhmpilotApiClient:
         result = await self.hass.async_add_executor_job(
             self._execute_modbus_sync, self.client.read_holding_registers, 40799
         )
-        _LOGGER.warning("Test_connection: %s", result)
+        # _LOGGER.warning("Test_connection: %s", result)
         return result is not None
 
     async def async_get_data(self) -> Dict[str, Any]:
@@ -116,7 +116,7 @@ class FroniusOhmpilotApiClient:
 
     async def async_set_power_limit(self, power: int) -> None:
         """Set the power limit via Modbus."""
-        _LOGGER.warning("Set power limit to %s W", power)
+        #_LOGGER.warning("Set power limit to %s W", power)
         payload = [0, power]
         await self.hass.async_add_executor_job(
             self._execute_modbus_sync, self.client.write_registers, 40599, payload
