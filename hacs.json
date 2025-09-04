@@ -1,5 +1,6 @@
 {
   "name": "Fronius Ohmpilot",
   "render_readme": true,
-  "content_in_root": false
+  "content_in_root": false,
+  "image_link": "https://raw.githubusercontent.com/x-ian/ha-fronius-ohmpilot/refs/heads/main/ohmpilot.png"
 }
