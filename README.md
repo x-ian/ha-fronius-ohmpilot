@@ -15,6 +15,13 @@
 * Once this is done, the Ohmpilot can be remotely configured on the fly by Homeassistant or other systems through HTTP calls to its local web interface
 * Remember: This only works if the RS484 modbus wires are disconnected and the IP auto-discovery from the Gen24 fails
 
+* Appears as if Online firmware updates aren't working - even for Gen24 updates only appeared in solarweb after Ohmpilot was connected again to Gen24. Temporarily switching Ethernet connection back to main router (instead of router just for the Ohmpilot) (and potentially a restart of Ohmpilot) solved the problem
+
+Known firmware versions:
+
+* OhmPilot 1.0.26 & Gen24 1.36.6-1
+* OhmPilot: 1.0.29-1 & Gen 24 1.40.8-1
+
 Useful links: 
 
 * https://github.com/mstroh76/cohmpilot/blob/main/cohmpilot.c
