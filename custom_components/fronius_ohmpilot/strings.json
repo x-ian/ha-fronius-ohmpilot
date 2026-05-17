@@ -4,8 +4,15 @@
       "user": {
         "data": {
           "host": "[%key:common::config_flow::data::host%]",
-          "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "modbus_port": "Modbus Port",
+          "http_port": "HTTP Port",
+          "heater1_maximum_power": "Heater Maximum Power"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the Ohmpilot device",
+          "modbus_port": "Modbus TCP port of the Ohmpilot (default: 503)",
+          "http_port": "HTTP API port of the Ohmpilot (default: 81)",
+          "heater1_maximum_power": "Maximum power output of heater 1 in watts"
         }
       }
     },
@@ -16,6 +23,28 @@
     },
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]",
+          "modbus_port": "Modbus Port",
+          "http_port": "HTTP Port",
+          "heater1_maximum_power": "Heater Maximum Power"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the Ohmpilot device",
+          "modbus_port": "Modbus TCP port of the Ohmpilot (default: 503)",
+          "http_port": "HTTP API port of the Ohmpilot (default: 81)",
+          "heater1_maximum_power": "Maximum power output of heater 1 in watts"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   }
 }

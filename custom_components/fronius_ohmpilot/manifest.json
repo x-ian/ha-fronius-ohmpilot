@@ -1,7 +1,7 @@
 {
   "domain": "fronius_ohmpilot",
   "name": "Fronius Ohmpilot",
-  "version": "1.0.1",
+  "version": "1.5.0",
   "codeowners": [
     "@x-ian"
   ],
