@@ -22,15 +22,15 @@ class FroniusOhmpilotDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=5),
-            # Set always_update to `False` if the data returned from the
-            # api can be compared via `__eq__` to avoid duplicate updates
-            # being dispatched to listeners
             always_update=False,
         )
         self.api = api_client
+        self.active: bool = True
 
     async def _async_update_data(self):
         """Fetch data from API."""
+        if not self.active:
+            return self.data
         try:
             data = await self.api.async_get_data()
             if data is None or not any(v is not None for v in data.values()):
