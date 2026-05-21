@@ -1,13 +1,8 @@
 """Sensor platform for Fronius Ohmpilot."""
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -21,46 +16,44 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
+    coordinator: FroniusOhmpilotDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    entities = [
-        OhmpilotTemperatureSensor(coordinator, entry),
-        OhmpilotPowerSensor(coordinator, entry),
-        OhmpilotEnergySensor(coordinator, entry),
-        OhmpilotStatusSensor(coordinator, entry),
-    ]
-    async_add_entities(entities)
+    async_add_entities(
+        [
+            OhmpilotTemperatureSensor(coordinator, entry),
+            OhmpilotPowerSensor(coordinator, entry),
+            OhmpilotEnergySensor(coordinator, entry),
+            OhmpilotStatusSensor(coordinator, entry),
+        ]
+    )
 
 
-class OhmpilotBaseSensor(
-    CoordinatorEntity[FroniusOhmpilotDataUpdateCoordinator], SensorEntity
-):
+class OhmpilotBaseSensor(CoordinatorEntity[FroniusOhmpilotDataUpdateCoordinator], SensorEntity):
     """Base class for Ohmpilot sensors."""
 
-    def __init__(
-        self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry
-    ):
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="Fronius Ohmpilot",
-            manufacturer="Fronius",
-            model="Ohmpilot",
-        )
+        self._attr_device_info = coordinator.device_info
 
 
 class OhmpilotTemperatureSensor(OhmpilotBaseSensor):
     """Representation of the Ohmpilot Temperature sensor."""
 
-    _attr_name = "Fronius Ohmpilot Integration Temperature"
-    _attr_unique_id = "33bce9d7-958a-4999-9ff5-a944d180aefc"
+    _attr_name = "Temperature"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "°C"
     _attr_icon = "mdi:thermometer"
+
+    def __init__(self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize."""
+        super().__init__(coordinator, entry)
+        serial = coordinator.serial_number or entry.entry_id
+        self._attr_unique_id = f"{serial}_temperature"
 
     @property
     def native_value(self):
@@ -71,12 +64,17 @@ class OhmpilotTemperatureSensor(OhmpilotBaseSensor):
 class OhmpilotPowerSensor(OhmpilotBaseSensor):
     """Representation of the Ohmpilot Power sensor."""
 
-    _attr_name = "Fronius Ohmpilot Integration Power"
-    _attr_unique_id = "588daa8b-f42c-4082-8371-d1c243054728"
+    _attr_name = "Power"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "W"
     _attr_icon = "mdi:flash"
+
+    def __init__(self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize."""
+        super().__init__(coordinator, entry)
+        serial = coordinator.serial_number or entry.entry_id
+        self._attr_unique_id = f"{serial}_power"
 
     @property
     def native_value(self):
@@ -87,12 +85,17 @@ class OhmpilotPowerSensor(OhmpilotBaseSensor):
 class OhmpilotEnergySensor(OhmpilotBaseSensor):
     """Representation of the Ohmpilot Energy sensor."""
 
-    _attr_name = "Fronius Ohmpilot Integration Energy Consumed"
-    _attr_unique_id = "54f07913-1686-4a58-a414-b585feb0b4cb"
+    _attr_name = "Energy Consumed"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_native_unit_of_measurement = "Wh"
     _attr_icon = "mdi:flash"
+
+    def __init__(self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize."""
+        super().__init__(coordinator, entry)
+        serial = coordinator.serial_number or entry.entry_id
+        self._attr_unique_id = f"{serial}_energy_consumed"
 
     @property
     def native_value(self):
@@ -103,9 +106,14 @@ class OhmpilotEnergySensor(OhmpilotBaseSensor):
 class OhmpilotStatusSensor(OhmpilotBaseSensor):
     """Representation of the Ohmpilot Status Code sensor."""
 
-    _attr_name = "Fronius Ohmpilot Integration State Code"
-    _attr_unique_id = "c9a33e12-db67-43be-9ebc-9d6f95e81196"
+    _attr_name = "State Code"
     _attr_icon = "mdi:information-outline"
+
+    def __init__(self, coordinator: FroniusOhmpilotDataUpdateCoordinator, entry: ConfigEntry) -> None:
+        """Initialize."""
+        super().__init__(coordinator, entry)
+        serial = coordinator.serial_number or entry.entry_id
+        self._attr_unique_id = f"{serial}_state_code"
 
     @property
     def native_value(self):

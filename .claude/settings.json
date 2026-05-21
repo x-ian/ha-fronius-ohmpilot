@@ -14,7 +14,14 @@
       "Bash(/home/vscode/.local/ha-venv/bin/python -c \"import sys; print\\(sys.version\\); import aiohttp; print\\('aiohttp:', aiohttp.__version__\\)\")",
       "Bash(python3 -c \"import inspect, homeassistant.config_entries as ce; print\\(inspect.getsource\\(ce.OptionsFlow.__init__\\)\\)\")",
       "Bash(python3 -c \"import homeassistant.config_entries as ce; import inspect; print\\(inspect.getsource\\(ce.OptionsFlow\\)\\)\")",
-      "Bash(python3 -c \"import homeassistant.config_entries as ce; import inspect; print\\(inspect.getsource\\(ce.ConfigEntryBaseFlow\\)\\)\")"
+      "Bash(python3 -c \"import homeassistant.config_entries as ce; import inspect; print\\(inspect.getsource\\(ce.ConfigEntryBaseFlow\\)\\)\")",
+      "Bash(git -C /workspaces/ha-fronius-ohmpilot log --oneline -- custom_components/fronius_ohmpilot/number.py)",
+      "Bash(git -C /workspaces/ha-fronius-ohmpilot log --all --oneline --follow -p -- custom_components/fronius_ohmpilot/number.py)",
+      "WebFetch(domain:sunspec.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git -C /workspaces/ha-fronius-ohmpilot diff --name-only HEAD)",
+      "Bash(git -C /workspaces/ha-fronius-ohmpilot diff --name-only --cached)"
     ]
   }
 }

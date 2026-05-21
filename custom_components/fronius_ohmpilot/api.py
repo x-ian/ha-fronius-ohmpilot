@@ -31,13 +31,10 @@ class FroniusOhmpilotApiClient:
         _LOGGER.debug("_execute_modbus_sync")
         try:
             self.client.connect()
-            # _LOGGER.warning("_execute_modbus_sync 2: %s | %s", *args, args)
             result = action(*args)
             if result.isError():
                 _LOGGER.error("Modbus error: %s", result)
                 return None
-            # _LOGGER.warning("_execute_modbus_sync. No Modbus error: %s", result)
-            return result
         except ConnectionException as e:
             _LOGGER.error(
                 "Failed to connect to Ohmpilot at %s:%s - %s",
@@ -46,12 +43,12 @@ class FroniusOhmpilotApiClient:
                 e,
             )
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _LOGGER.error("_execute_modbus_sync exception %s", e)
             return None
-
+        else:
+            return result
         finally:
-            # _LOGGER.warning("_execute_modbus_sync finally")
             self.client.close()
 
     async def test_connection(self) -> bool:
@@ -125,8 +122,33 @@ class FroniusOhmpilotApiClient:
             response.raise_for_status()
             # _LOGGER.warning("Set target temperature to %s °C", temp)
             # _LOGGER.warning("Set target temperature to %s °C", url)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _LOGGER.error("Failed to set target temperature: %s", e)
+
+    async def async_get_device_info(self) -> dict[str, str]:
+        """Read device identification registers (manufacturer, model, serial number)."""
+
+        def _sync_read() -> dict[str, str]:
+            self.client.connect()
+            try:
+                result: dict[str, str] = {}
+                for key, address, count in (
+                    ("manufacturer", 40004, 5),
+                    ("model", 40009, 14),
+                    ("serial_number", 40023, 16),
+                ):
+                    regs = self.client.read_holding_registers(address, count=count)
+                    if not regs.isError():
+                        raw = bytes(b for reg in regs.registers for b in reg.to_bytes(2, "big"))
+                        decoded = raw.rstrip(b"\x00").decode("ascii", errors="ignore").strip()
+                        result[key] = "".join(c for c in decoded if c.isalnum()) if key == "serial_number" else decoded
+                    else:
+                        result[key] = ""
+                return result
+            finally:
+                self.client.close()
+
+        return await self.hass.async_add_executor_job(_sync_read)
 
     async def async_set_time(self) -> None:
         """Set the system time on the Ohmpilot via Modbus."""

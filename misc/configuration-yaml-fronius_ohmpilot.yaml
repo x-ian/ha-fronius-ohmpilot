@@ -1,0 +1,54 @@
+# admin stuff to
+input_number:
+  fronius_ohmpilot_maximale_leistung:
+    name: "Fronius Ohmpilot Maximale Leistung"
+    min: 0
+    max: 3700
+    step: 100
+    mode: slider
+    unit_of_measurement: W
+  fronius_ohmpilot_maximale_temperatur:
+    name: "Fronius Ohmpilot Maximale Temperatur"
+    min: 10
+    max: 55
+    step: 5
+    mode: slider
+    icon: mdi:coolant-temperature
+    unit_of_measurement: °C
+
+template:
+  - sensor:
+      - name: "Fronius Ohmpilot Temperature"
+        unique_id: "c9d69a5f-92f4-47a3-85ea-1a8567503f55"
+        state: "{{ -1 }}"
+        unit_of_measurement: °C
+        icon: mdi:thermometer
+        device_class: "temperature"
+      - name: "Fronius Ohmpilot Power"
+        unique_id: "ce456372-a910-4a6d-88e5-709dda8e9f2c"
+        state: "{{ -1 }}"
+        unit_of_measurement: W
+        icon: mdi:flash
+        device_class: "power"
+      - name: "Fronius Ohmpilot State Code"
+        unique_id: "f1c87a81-1d84-4c0b-851d-e0d5c58337c1"
+        state: None
+      # - name: "Fronius Ohmpilot State Message"
+      #   unique_id: "f7d80d7d-20ae-451d-bc69-82949db337d1"
+      #   state: None
+      - name: "Fronius Ohmpilot Energy consumed"
+        unique_id: "e3331a9e-95cb-4106-b491-68b35c97329e"
+        state: "{{ -1 }}"
+        state_class: total_increasing
+        unit_of_measurement: Wh
+        icon: mdi:flash
+        device_class: "energy"
+
+# rest command to set target temp
+rest_command:
+  # fronius_ohmpilot_target_temperature:
+  #   url: http://192.168.1.44/set.cgi?name=Ohmpilot&H1Auto=manually&H1Ph=3+phasig&H1Power=3709&tempInst=on&legCyc=0&maxTempUsed=on&maxTempCyc={{target}}&H2Ph=aus&H2Power=0&H2ThModeOn=Einspeisung&H2ThOn=4000&H2ThModeOff=Einspeisung&H2ThOff=0 }}
+  #   method: GET
+  fronius_ohmpilot_target_temperature:
+    url: http://192.168.1.5:81/set.cgi?name=Ohmpilot&H1Auto=manually&H1Ph=3+phasig&H1Power=3709&tempInst=on&legCyc=0&maxTempUsed=on&maxTempCyc={{target}}&H2Ph=aus&H2Power=0&H2ThModeOn=Einspeisung&H2ThOn=4000&H2ThModeOff=Einspeisung&H2ThOff=0 }}
+    method: GET
