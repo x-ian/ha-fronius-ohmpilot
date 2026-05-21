@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import logging
+import threading
 import time
 from typing import Any
 
@@ -25,31 +26,33 @@ class FroniusOhmpilotApiClient:
         self.http_port = http_port
         self.client = ModbusTcpClient(host, port=modbus_port)
         self.session = async_get_clientsession(hass)
+        self._modbus_lock = threading.Lock()
 
     def _execute_modbus_sync(self, action, *args):
         """Execute a synchronous pymodbus action in an executor."""
         _LOGGER.debug("_execute_modbus_sync")
-        try:
-            self.client.connect()
-            result = action(*args)
-            if result.isError():
-                _LOGGER.error("Modbus error: %s", result)
+        with self._modbus_lock:
+            try:
+                self.client.connect()
+                result = action(*args)
+                if result.isError():
+                    _LOGGER.error("Modbus error: %s", result)
+                    return None
+            except ConnectionException as e:
+                _LOGGER.error(
+                    "Failed to connect to Ohmpilot at %s:%s - %s",
+                    self.host,
+                    self.modbus_port,
+                    e,
+                )
                 return None
-        except ConnectionException as e:
-            _LOGGER.error(
-                "Failed to connect to Ohmpilot at %s:%s - %s",
-                self.host,
-                self.modbus_port,
-                e,
-            )
-            return None
-        except Exception as e:  # noqa: BLE001
-            _LOGGER.error("_execute_modbus_sync exception %s", e)
-            return None
-        else:
-            return result
-        finally:
-            self.client.close()
+            except Exception as e:  # noqa: BLE001
+                _LOGGER.error("_execute_modbus_sync exception %s", e)
+                return None
+            else:
+                return result
+            finally:
+                self.client.close()
 
     async def test_connection(self) -> bool:
         """Test the connection to the Ohmpilot."""
@@ -66,36 +69,38 @@ class FroniusOhmpilotApiClient:
 
         def _sync_get_data():
             """Synchronous data fetching logic."""
-            self.client.connect()
+            with self._modbus_lock:
+                try:
+                    self.client.connect()
 
-            # Status
-            status_reg = self.client.read_holding_registers(40799, count=1)
-            data["status"] = status_reg.registers[0] if not status_reg.isError() else None
+                    # Status
+                    status_reg = self.client.read_holding_registers(40799, count=1)
+                    data["status"] = status_reg.registers[0] if not status_reg.isError() else None
 
-            # Temperature
-            temp_reg = self.client.read_holding_registers(40808, count=1)
-            data["temperature"] = temp_reg.registers[0] / 10 if not temp_reg.isError() else None
+                    # Temperature
+                    temp_reg = self.client.read_holding_registers(40808, count=1)
+                    data["temperature"] = temp_reg.registers[0] / 10 if not temp_reg.isError() else None
 
-            # Power (32-bit)
-            power_regs = self.client.read_holding_registers(40800, count=2)
-            if not power_regs.isError():
-                data["power"] = (power_regs.registers[0] << 16) | power_regs.registers[1]
-            else:
-                data["power"] = None
+                    # Power (32-bit)
+                    power_regs = self.client.read_holding_registers(40800, count=2)
+                    if not power_regs.isError():
+                        data["power"] = (power_regs.registers[0] << 16) | power_regs.registers[1]
+                    else:
+                        data["power"] = None
 
-            # Energy (64-bit)
-            energy_regs = self.client.read_holding_registers(40804, count=4)
-            if not energy_regs.isError():
-                data["energy"] = (
-                    (energy_regs.registers[0] << 48)
-                    | (energy_regs.registers[1] << 32)
-                    | (energy_regs.registers[2] << 16)
-                    | energy_regs.registers[3]
-                )
-            else:
-                data["energy"] = None
-
-            self.client.close()
+                    # Energy (64-bit)
+                    energy_regs = self.client.read_holding_registers(40804, count=4)
+                    if not energy_regs.isError():
+                        data["energy"] = (
+                            (energy_regs.registers[0] << 48)
+                            | (energy_regs.registers[1] << 32)
+                            | (energy_regs.registers[2] << 16)
+                            | energy_regs.registers[3]
+                        )
+                    else:
+                        data["energy"] = None
+                finally:
+                    self.client.close()
 
             _LOGGER.debug("_sync_get_data %s", data)
             return data
@@ -129,24 +134,27 @@ class FroniusOhmpilotApiClient:
         """Read device identification registers (manufacturer, model, serial number)."""
 
         def _sync_read() -> dict[str, str]:
-            self.client.connect()
-            try:
-                result: dict[str, str] = {}
-                for key, address, count in (
-                    ("manufacturer", 40004, 5),
-                    ("model", 40009, 14),
-                    ("serial_number", 40023, 16),
-                ):
-                    regs = self.client.read_holding_registers(address, count=count)
-                    if not regs.isError():
-                        raw = bytes(b for reg in regs.registers for b in reg.to_bytes(2, "big"))
-                        decoded = raw.rstrip(b"\x00").decode("ascii", errors="ignore").strip()
-                        result[key] = "".join(c for c in decoded if c.isalnum()) if key == "serial_number" else decoded
-                    else:
-                        result[key] = ""
-                return result
-            finally:
-                self.client.close()
+            with self._modbus_lock:
+                try:
+                    self.client.connect()
+                    result: dict[str, str] = {}
+                    for key, address, count in (
+                        ("manufacturer", 40004, 5),
+                        ("model", 40009, 14),
+                        ("serial_number", 40023, 16),
+                    ):
+                        regs = self.client.read_holding_registers(address, count=count)
+                        if not regs.isError():
+                            raw = bytes(b for reg in regs.registers for b in reg.to_bytes(2, "big"))
+                            decoded = raw.rstrip(b"\x00").decode("ascii", errors="ignore").strip()
+                            result[key] = (
+                                "".join(c for c in decoded if c.isalnum()) if key == "serial_number" else decoded
+                            )
+                        else:
+                            result[key] = ""
+                    return result
+                finally:
+                    self.client.close()
 
         return await self.hass.async_add_executor_job(_sync_read)
 
